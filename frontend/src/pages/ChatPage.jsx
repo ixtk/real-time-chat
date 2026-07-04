@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getCurrentUser, logoutUser } from '../api/authApi'
 import AuthModal from '../components/AuthModal'
 import Avatar from '../components/Avatar'
 import ChatList from '../components/ChatList'
@@ -8,8 +9,34 @@ import { currentUser, initialChats } from '../data/mockChats'
 
 function ChatPage() {
   const [user, setUser] = useState(null)
+  const [isCheckingSession, setIsCheckingSession] = useState(true)
   const [chats, setChats] = useState(initialChats)
   const [activeChatId, setActiveChatId] = useState(initialChats[0].id)
+
+  useEffect(() => {
+    let isMounted = true
+
+    getCurrentUser()
+      .then((sessionUser) => {
+        if (isMounted) {
+          setUser(sessionUser)
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setUser(null)
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCheckingSession(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const activeChat = useMemo(
     () => chats.find((chat) => chat.id === activeChatId) ?? chats[0],
@@ -39,17 +66,22 @@ function ChatPage() {
     )
   }
 
+  const handleLogout = async () => {
+    await logoutUser()
+    setUser(null)
+  }
+
   const account = user
     ? {
         ...currentUser,
-        name: user.name,
-        initials: user.name.slice(0, 2).toUpperCase(),
+        name: user.username,
+        initials: user.username.slice(0, 2).toUpperCase(),
       }
     : currentUser
 
   return (
     <main className="chat-shell">
-      {!user && <AuthModal onAuth={setUser} />}
+      {!isCheckingSession && !user && <AuthModal onAuth={setUser} />}
 
       <aside className="sidebar">
         <ChatList chats={chats} activeChatId={activeChat.id} onSelect={setActiveChatId} />
@@ -60,7 +92,7 @@ function ChatPage() {
             <strong>{account.name}</strong>
             <p>Active now</p>
           </div>
-          <button className="signout" type="button" title="Sign out" onClick={() => setUser(null)}>
+          <button className="signout" type="button" title="Sign out" onClick={handleLogout}>
             <svg
               width="14"
               height="14"

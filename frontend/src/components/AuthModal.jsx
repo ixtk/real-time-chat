@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { loginUser, registerUser } from '../api/authApi'
 
 function AuthModal({ onAuth }) {
   const [mode, setMode] = useState('signin')
+  const [serverError, setServerError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const {
     register,
     handleSubmit,
@@ -12,17 +15,24 @@ function AuthModal({ onAuth }) {
 
   const isRegister = mode === 'register'
 
-  const submitAuth = (data) => {
-    const displayName = isRegister ? data.name : data.email.split('@')[0]
+  const submitAuth = async (data) => {
+    setServerError('')
+    setIsSubmitting(true)
 
-    onAuth({
-      name: displayName || 'You',
-      email: data.email,
-    })
+    try {
+      const authUser = isRegister ? await registerUser(data) : await loginUser(data)
+
+      onAuth(authUser)
+    } catch (error) {
+      setServerError(error.response?.data?.message || 'Authentication failed.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const changeMode = (nextMode) => {
     setMode(nextMode)
+    setServerError('')
     reset()
   }
 
@@ -47,38 +57,31 @@ function AuthModal({ onAuth }) {
         </div>
 
         <h2>{isRegister ? 'Create account' : 'Sign in'}</h2>
-        <p>Enter your credentials to continue.</p>
+        <p>Enter your username and password to continue.</p>
 
         <form className="auth-form" onSubmit={handleSubmit(submitAuth)}>
-          {isRegister && (
-            <label>
-              <input
-                placeholder="Name"
-                {...register('name', { required: 'Name is required' })}
-              />
-              {errors.name && <span className="form-error">{errors.name.message}</span>}
-            </label>
-          )}
-
           <label>
             <input
-              type="email"
-              placeholder="Email"
-              {...register('email', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^\S+@\S+\.\S+$/,
-                  message: 'Enter a valid email',
+              placeholder="Username"
+              autoComplete="username"
+              {...register('username', {
+                required: 'Username is required',
+                minLength: {
+                  value: 3,
+                  message: 'Use at least 3 characters',
                 },
               })}
             />
-            {errors.email && <span className="form-error">{errors.email.message}</span>}
+            {errors.username && (
+              <span className="form-error">{errors.username.message}</span>
+            )}
           </label>
 
           <label>
             <input
               type="password"
               placeholder="Password"
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
               {...register('password', {
                 required: 'Password is required',
                 minLength: {
@@ -92,7 +95,11 @@ function AuthModal({ onAuth }) {
             )}
           </label>
 
-          <button type="submit">{isRegister ? 'Create account' : 'Sign in'}</button>
+          {serverError && <span className="form-error">{serverError}</span>}
+
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Please wait...' : isRegister ? 'Create account' : 'Sign in'}
+          </button>
         </form>
       </section>
     </div>

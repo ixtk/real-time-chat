@@ -5,7 +5,7 @@ MERN stack starter with a Vite React frontend and an Express/Mongoose backend.
 ## Structure
 
 - `frontend` - React, React Router, React Hook Form, mock chat UI.
-- `backend` - Node, Express, Mongoose, CORS, dotenv, nodemon.
+- `backend` - Node, Express, Mongoose, CORS, dotenv, nodemon, username/password auth.
 
 ## Setup
 
@@ -48,6 +48,8 @@ Frontend opens on `http://localhost:5173`. Backend runs on `http://localhost:500
 
 ## Current Features
 
-- Sign in and register modal are frontend-only and use `react-hook-form`.
+- Sign in and register modal use `react-hook-form` and call the backend with `axios`.
+- Registration and login use `username` and `password`; email is not required.
+- Login state is kept for 14 days with a JWT stored in an `httpOnly` cookie.
 - Chat list, active conversation, messages, typing indicator, and sending messages use local mock data.
-- Backend includes basic app structure, MongoDB connection config, `Chat` model, and `/api/health` plus `/api/chats` routes.
+- Backend includes MongoDB connection config, `User` and `Chat` models, and `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`, `/api/health`, plus `/api/chats` routes.
