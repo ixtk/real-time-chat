@@ -5,6 +5,7 @@ import express from 'express'
 import { connectDB } from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
+import userRoutes from './routes/userRoutes.js'
 
 dotenv.config()
 
@@ -28,6 +29,7 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/users', userRoutes)
 app.use('/api/chats', chatRoutes)
 
 connectDB()

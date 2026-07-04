@@ -82,6 +82,13 @@ button {
   scrollbar-width: none;
 }
 
+.empty-sidebar {
+  margin: 14px 16px;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .chat-item {
   width: 100%;
   display: flex;
@@ -211,6 +218,16 @@ button {
   display: flex;
   flex-direction: column;
   background: var(--surface);
+}
+
+.empty-state {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #999;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .conversation-header {

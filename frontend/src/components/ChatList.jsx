@@ -11,6 +11,10 @@ function ChatList({ chats, activeChatId, onSelect }) {
       </div>
 
       <nav className="chat-list" aria-label="Chats">
+        {chats.length === 0 && (
+          <p className="empty-sidebar">No registered users yet.</p>
+        )}
+
         {chats.map((chat) => (
           <button
             className={`chat-item ${chat.id === activeChatId ? 'active' : ''}`}

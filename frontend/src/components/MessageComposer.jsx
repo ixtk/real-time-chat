@@ -1,29 +1,48 @@
 import { useForm } from 'react-hook-form'
+import { useState } from 'react'
 
-function MessageComposer({ chat, onSend }) {
+function MessageComposer({ chat, onSend, disabled = false }) {
+  const [isSending, setIsSending] = useState(false)
   const { register, handleSubmit, reset, watch } = useForm({
     defaultValues: { message: '' },
   })
   const message = watch('message')
 
-  const submitMessage = ({ message }) => {
+  const submitMessage = async ({ message }) => {
     const text = message.trim()
 
-    if (!text) return
+    if (!text || disabled || isSending) return
 
-    onSend(text)
-    reset()
+    setIsSending(true)
+
+    try {
+      await onSend(text)
+      reset()
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
     <div className="composer">
       <form onSubmit={handleSubmit(submitMessage)}>
         <input
-          placeholder={`Message ${chat.name}...`}
+          placeholder={
+            disabled
+              ? 'Select a chat to send a message.'
+              : isSending
+                ? 'Sending...'
+                : `Message ${chat.name}...`
+          }
           autoComplete="off"
+          disabled={disabled || isSending}
           {...register('message')}
         />
-        <button className="send-button" type="submit" disabled={!message?.trim()}>
+        <button
+          className="send-button"
+          type="submit"
+          disabled={disabled || isSending || !message?.trim()}
+        >
           <svg
             width="14"
             height="14"

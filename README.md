@@ -51,5 +51,5 @@ Frontend opens on `http://localhost:5173`. Backend runs on `http://localhost:500
 - Sign in and register modal use `react-hook-form` and call the backend with `axios`.
 - Registration and login use `username` and `password`; email is not required.
 - Login state is kept for 14 days with a JWT stored in an `httpOnly` cookie.
-- Chat list, active conversation, messages, typing indicator, and sending messages use local mock data.
-- Backend includes MongoDB connection config, `User` and `Chat` models, and `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`, `/api/health`, plus `/api/chats` routes.
+- Chat list loads real registered users from the backend; messages are still kept in frontend state.
+- Backend includes MongoDB connection config, `User` and `Chat` models, and `/api/users`, `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`, `/api/health`, plus `/api/chats` routes.

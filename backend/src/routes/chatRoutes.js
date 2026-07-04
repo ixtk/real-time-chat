@@ -1,8 +1,11 @@
 import express from 'express'
-import { getChats } from '../controllers/chatController.js'
+import { createChat, getChats, sendMessage } from '../controllers/chatController.js'
+import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-router.get('/', getChats)
+router.get('/', requireAuth, getChats)
+router.post('/', requireAuth, createChat)
+router.post('/:chatId/messages', requireAuth, sendMessage)
 
 export default router

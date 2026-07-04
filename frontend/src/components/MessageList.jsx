@@ -1,10 +1,12 @@
 import Avatar from './Avatar'
 
-function MessageList({ chat }) {
+function MessageList({ chat, currentUserId }) {
   return (
     <div className="messages">
       {chat.messages.map((message) => {
-        const isMine = message.sender === 'me'
+        const senderId =
+          typeof message.sender === 'object' ? message.sender.id || message.sender._id : message.sender
+        const isMine = senderId === currentUserId
 
         return (
           <article className={`message ${isMine ? 'mine' : ''}`} key={message.id}>

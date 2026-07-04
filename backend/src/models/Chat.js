@@ -3,7 +3,8 @@ import mongoose from 'mongoose'
 const messageSchema = new mongoose.Schema(
   {
     sender: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
     },
     text: {
@@ -17,14 +18,15 @@ const messageSchema = new mongoose.Schema(
 
 const chatSchema = new mongoose.Schema(
   {
-    name: {
+    participantKey: {
       type: String,
       required: true,
-      trim: true,
+      unique: true,
     },
     participants: [
       {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true,
       },
     ],
@@ -32,6 +34,8 @@ const chatSchema = new mongoose.Schema(
   },
   { timestamps: true },
 )
+
+chatSchema.index({ participantKey: 1 }, { unique: true })
 
 const Chat = mongoose.model('Chat', chatSchema)
 
