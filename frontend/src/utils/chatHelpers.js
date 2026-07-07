@@ -31,7 +31,7 @@ export function mapUsersToChats(users) {
     name: registeredUser.username,
     initials: getInitials(registeredUser.username),
     color: avatarColors[index % avatarColors.length],
-    status: 'online',
+    status: registeredUser.status ?? 'offline',
     time: 'now',
     unread: 0,
     preview: 'Registered user',

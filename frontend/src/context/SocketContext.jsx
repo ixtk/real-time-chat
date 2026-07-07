@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { createSocket } from '../socket/socketClient'
 
@@ -6,30 +6,29 @@ const SocketContext = createContext(null)
 
 export function SocketProvider({ children }) {
   const { user } = useAuth()
-  const socketRef = useRef(null)
+  const [socket, setSocket] = useState(null)
 
   useEffect(() => {
     if (!user) {
-      socketRef.current?.disconnect()
-      socketRef.current = null
+      setSocket(null)
       return
     }
 
-    const socket = createSocket()
-    socket.connect()
-    socketRef.current = socket
+    const nextSocket = createSocket()
+    nextSocket.connect()
+    setSocket(nextSocket)
 
     return () => {
-      socket.disconnect()
-      socketRef.current = null
+      nextSocket.disconnect()
+      setSocket(null)
     }
   }, [user])
 
   const value = useMemo(
     () => ({
-      getSocket: () => socketRef.current,
+      socket,
     }),
-    [],
+    [socket],
   )
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>

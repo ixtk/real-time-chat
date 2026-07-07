@@ -1,6 +1,13 @@
+import { useEffect, useRef } from 'react'
 import Avatar from './Avatar'
 
 function MessageList({ chat, currentUserId }) {
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chat.messages.length])
+
   return (
     <div className="messages">
       {chat.messages.map((message) => {
@@ -30,6 +37,8 @@ function MessageList({ chat, currentUserId }) {
           </div>
         </div>
       )}
+
+      <div ref={bottomRef} />
     </div>
   )
 }

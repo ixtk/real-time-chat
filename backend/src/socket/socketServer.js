@@ -2,6 +2,7 @@ import { Server } from 'socket.io'
 import { authCookieName, verifyAuthToken } from '../utils/authToken.js'
 
 let io
+const onlineUsers = new Map()
 
 function parseCookies(cookieHeader = '') {
   return cookieHeader.split(';').reduce((cookies, cookie) => {
@@ -41,12 +42,45 @@ export function initializeSocketServer(server, allowedOrigins) {
   })
 
   io.on('connection', (socket) => {
+    const userId = socket.userId.toString()
+    const userSockets = onlineUsers.get(userId) ?? new Set()
+    const wasOffline = userSockets.size === 0
+
+    userSockets.add(socket.id)
+    onlineUsers.set(userId, userSockets)
+
+    socket.emit('presence:snapshot', getOnlineUserIds())
+
+    if (wasOffline) {
+      io.emit('presence:online', userId)
+    }
+
     socket.on('chat:join', (chatId) => {
       if (chatId) socket.join(chatId)
     })
 
     socket.on('chat:leave', (chatId) => {
       if (chatId) socket.leave(chatId)
+    })
+
+    socket.on('presence:get', () => {
+      socket.emit('presence:snapshot', getOnlineUserIds())
+    })
+
+    socket.on('disconnect', () => {
+      const activeSockets = onlineUsers.get(userId)
+
+      if (!activeSockets) return
+
+      activeSockets.delete(socket.id)
+
+      if (activeSockets.size > 0) {
+        onlineUsers.set(userId, activeSockets)
+        return
+      }
+
+      onlineUsers.delete(userId)
+      io.emit('presence:offline', userId)
     })
   })
 
@@ -60,4 +94,8 @@ export function emitChatMessage(chatId, message) {
     chatId: chatId.toString(),
     message,
   })
+}
+
+export function getOnlineUserIds() {
+  return [...onlineUsers.keys()]
 }

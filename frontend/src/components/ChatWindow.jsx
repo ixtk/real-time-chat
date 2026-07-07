@@ -5,13 +5,10 @@ import MessageList from './MessageList'
 import { useSocket } from '../context/SocketContext'
 
 function ChatWindow({ chat, currentUserId, onMessage, onSend }) {
-  const { getSocket } = useSocket()
+  const { socket } = useSocket()
 
   useEffect(() => {
-    if (!chat?.chatId) return
-
-    const socket = getSocket()
-    if (!socket) return
+    if (!chat?.chatId || !socket) return
 
     socket.emit('chat:join', chat.chatId)
 
@@ -27,7 +24,7 @@ function ChatWindow({ chat, currentUserId, onMessage, onSend }) {
       socket.emit('chat:leave', chat.chatId)
       socket.off('chat:message', handleIncomingMessage)
     }
-  }, [chat?.chatId, getSocket, onMessage])
+  }, [chat?.chatId, socket, onMessage])
 
   if (!chat) return null
 

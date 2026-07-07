@@ -7,6 +7,7 @@ import ChatList from '../components/ChatList'
 import ChatWindow from '../components/ChatWindow'
 import { fallbackAccount } from '../constants/currentUser'
 import { useAuth } from '../context/AuthContext'
+import { useSocket } from '../context/SocketContext'
 import {
   buildAccount,
   mapMessage,
@@ -16,6 +17,10 @@ import {
 
 function updateChat(chats, chatId, updates) {
   return chats.map((chat) => (chat.id === chatId ? { ...chat, ...updates } : chat))
+}
+
+function updateUserStatus(chats, userId, status) {
+  return updateChat(chats, userId, { status })
 }
 
 function EmptyChatState({ isBusy, hasUsers }) {
@@ -32,6 +37,7 @@ function EmptyChatState({ isBusy, hasUsers }) {
 
 function ChatPage() {
   const { user, isCheckingSession, signOut } = useAuth()
+  const { socket } = useSocket()
   const [chats, setChats] = useState([])
   const [activeChatId, setActiveChatId] = useState(null)
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
@@ -50,6 +56,40 @@ function ChatPage() {
 
     loadUsers()
   }, [user])
+
+  useEffect(() => {
+    if (!socket) return
+
+    function handleOnline(userId) {
+      setChats((currentChats) => updateUserStatus(currentChats, userId, 'online'))
+    }
+
+    function handleOffline(userId) {
+      setChats((currentChats) => updateUserStatus(currentChats, userId, 'offline'))
+    }
+
+    function handleSnapshot(onlineUserIds) {
+      const onlineUsers = new Set(onlineUserIds)
+
+      setChats((currentChats) =>
+        currentChats.map((chat) => ({
+          ...chat,
+          status: onlineUsers.has(chat.id) ? 'online' : 'offline',
+        })),
+      )
+    }
+
+    socket.on('presence:online', handleOnline)
+    socket.on('presence:offline', handleOffline)
+    socket.on('presence:snapshot', handleSnapshot)
+    socket.emit('presence:get')
+
+    return () => {
+      socket.off('presence:online', handleOnline)
+      socket.off('presence:offline', handleOffline)
+      socket.off('presence:snapshot', handleSnapshot)
+    }
+  }, [socket])
 
   async function loadUsers() {
     setIsLoadingUsers(true)
