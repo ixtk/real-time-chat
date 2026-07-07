@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { loginUser, registerUser } from '../api/authApi'
+import { useAuth } from '../context/AuthContext'
 
-function AuthModal({ onAuth }) {
+function AuthModal() {
+  const { signIn, register: createAccount } = useAuth()
   const [mode, setMode] = useState('signin')
   const [serverError, setServerError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -20,9 +21,11 @@ function AuthModal({ onAuth }) {
     setIsSubmitting(true)
 
     try {
-      const authUser = isRegister ? await registerUser(data) : await loginUser(data)
-
-      onAuth(authUser)
+      if (isRegister) {
+        await createAccount(data)
+      } else {
+        await signIn(data)
+      }
     } catch (error) {
       setServerError(error.response?.data?.message || 'Authentication failed.')
     } finally {

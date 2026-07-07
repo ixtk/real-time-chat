@@ -1,84 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
-import { getCurrentUser, logoutUser } from '../api/authApi'
+import { useEffect, useState } from 'react'
 import { createChat, sendMessage } from '../api/chatApi'
 import { getRegisteredUsers } from '../api/userApi'
+import AccountPanel from '../components/AccountPanel'
 import AuthModal from '../components/AuthModal'
-import Avatar from '../components/Avatar'
 import ChatList from '../components/ChatList'
-import MessageComposer from '../components/MessageComposer'
-import MessageList from '../components/MessageList'
-import { currentUser } from '../data/mockChats'
+import ChatWindow from '../components/ChatWindow'
+import { fallbackAccount } from '../constants/currentUser'
+import { useAuth } from '../context/AuthContext'
+import {
+  buildAccount,
+  mapMessage,
+  mapMessages,
+  mapUsersToChats,
+} from '../utils/chatHelpers'
 
-const avatarColors = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626']
-
-function getInitials(username) {
-  return username.slice(0, 2).toUpperCase()
+function updateChat(chats, chatId, updates) {
+  return chats.map((chat) => (chat.id === chatId ? { ...chat, ...updates } : chat))
 }
 
-function mapUsersToChats(users) {
-  return users.map((registeredUser, index) => ({
-    id: registeredUser.id,
-    name: registeredUser.username,
-    initials: getInitials(registeredUser.username),
-    color: avatarColors[index % avatarColors.length],
-    status: 'online',
-    time: 'now',
-    unread: 0,
-    preview: 'Registered user',
-    typing: false,
-    messages: [],
-  }))
-}
+function EmptyChatState({ isBusy, hasUsers }) {
+  if (isBusy) {
+    return <div className="empty-state">Loading...</div>
+  }
 
-function formatMessageTime(dateValue) {
-  if (!dateValue) return 'now'
-
-  return new Intl.DateTimeFormat('en', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateValue))
-}
-
-function mapMessages(messages) {
-  return messages.map((message) => ({
-    ...message,
-    id: message.id || message._id,
-    time: formatMessageTime(message.createdAt),
-  }))
+  return (
+    <div className="empty-state">
+      {hasUsers ? 'Select a user to create a chat.' : 'No registered users to message yet.'}
+    </div>
+  )
 }
 
 function ChatPage() {
-  const [user, setUser] = useState(null)
-  const [isCheckingSession, setIsCheckingSession] = useState(true)
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
-  const [isCreatingChat, setIsCreatingChat] = useState(false)
+  const { user, isCheckingSession, signOut } = useAuth()
   const [chats, setChats] = useState([])
   const [activeChatId, setActiveChatId] = useState(null)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [isCreatingChat, setIsCreatingChat] = useState(false)
 
-  useEffect(() => {
-    let isMounted = true
-
-    getCurrentUser()
-      .then((sessionUser) => {
-        if (isMounted) {
-          setUser(sessionUser)
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setUser(null)
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsCheckingSession(false)
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const activeChat = chats.find((chat) => chat.id === activeChatId) ?? null
+  const account = buildAccount(user, fallbackAccount)
+  const isBusy = isLoadingUsers || isCreatingChat
 
   useEffect(() => {
     if (!user) {
@@ -87,165 +48,82 @@ function ChatPage() {
       return
     }
 
-    let isMounted = true
-
-    setIsLoadingUsers(true)
-    getRegisteredUsers()
-      .then((registeredUsers) => {
-        if (!isMounted) return
-
-        const registeredUserChats = mapUsersToChats(registeredUsers)
-
-        setChats(registeredUserChats)
-        setActiveChatId(null)
-      })
-      .catch(() => {
-        if (isMounted) {
-          setChats([])
-          setActiveChatId(null)
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoadingUsers(false)
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
+    loadUsers()
   }, [user])
 
-  const activeChat = useMemo(
-    () => chats.find((chat) => chat.id === activeChatId) ?? null,
-    [activeChatId, chats],
-  )
+  async function loadUsers() {
+    setIsLoadingUsers(true)
 
-  const handleSend = async (text) => {
-    if (!activeChat?.chatId) return
-
-    const savedMessage = await sendMessage(activeChat.chatId, text)
-    const newMessage = {
-      ...savedMessage,
-      time: formatMessageTime(savedMessage.createdAt),
+    try {
+      const users = await getRegisteredUsers()
+      setChats(mapUsersToChats(users))
+      setActiveChatId(null)
+    } catch (_error) {
+      setChats([])
+      setActiveChatId(null)
+    } finally {
+      setIsLoadingUsers(false)
     }
-
-    setChats((currentChats) =>
-      currentChats.map((chat) =>
-        chat.id === activeChat.id
-          ? {
-              ...chat,
-              preview: text,
-              time: 'now',
-              unread: 0,
-              messages: [...chat.messages, newMessage],
-            }
-          : chat,
-      ),
-    )
   }
 
-  const handleSelectUser = async (receiverId) => {
+  async function handleSelectUser(receiverId) {
     setIsCreatingChat(true)
 
     try {
-      const createdChat = await createChat(receiverId)
+      const selectedChat = await createChat(receiverId)
+      const updates = {
+        chatId: selectedChat.id,
+        preview: 'Chat created',
+        time: 'now',
+        messages: mapMessages(selectedChat.messages),
+      }
 
-      setChats((currentChats) =>
-        currentChats.map((chat) =>
-          chat.id === receiverId
-            ? {
-                ...chat,
-                chatId: createdChat.id,
-                preview: 'Chat created',
-                time: 'now',
-                messages: mapMessages(createdChat.messages ?? []),
-              }
-            : chat,
-        ),
-      )
+      setChats((currentChats) => updateChat(currentChats, receiverId, updates))
       setActiveChatId(receiverId)
     } catch (_error) {
       setChats((currentChats) =>
-        currentChats.map((chat) =>
-          chat.id === receiverId ? { ...chat, preview: 'Could not create chat' } : chat,
-        ),
+        updateChat(currentChats, receiverId, { preview: 'Could not create chat' }),
       )
     } finally {
       setIsCreatingChat(false)
     }
   }
 
-  const handleLogout = async () => {
-    await logoutUser()
-    setUser(null)
+  async function handleSend(text) {
+    if (!activeChat?.chatId) return
+
+    const savedMessage = await sendMessage(activeChat.chatId, text)
+    const newMessage = mapMessage(savedMessage)
+    const updates = {
+      preview: text,
+      time: 'now',
+      unread: 0,
+      messages: [...activeChat.messages, newMessage],
+    }
+
+    setChats((currentChats) => updateChat(currentChats, activeChat.id, updates))
+  }
+
+  async function handleLogout() {
+    await signOut()
     setChats([])
     setActiveChatId(null)
   }
 
-  const account = user
-    ? {
-        ...currentUser,
-        name: user.username,
-        initials: user.username.slice(0, 2).toUpperCase(),
-      }
-    : currentUser
-
   return (
     <main className="chat-shell">
-      {!isCheckingSession && !user && <AuthModal onAuth={setUser} />}
+      {!isCheckingSession && !user && <AuthModal />}
 
       <aside className="sidebar">
         <ChatList chats={chats} activeChatId={activeChat?.id} onSelect={handleSelectUser} />
-
-        <div className="account">
-          <Avatar user={account} size="small" />
-          <div>
-            <strong>{account.name}</strong>
-            <p>Active now</p>
-          </div>
-          <button className="signout" type="button" title="Sign out" onClick={handleLogout}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
+        <AccountPanel account={account} onLogout={handleLogout} />
       </aside>
 
       <section className="chat-main">
         {activeChat ? (
-          <>
-            <header className="conversation-header">
-              <Avatar user={activeChat} />
-              <div>
-                <h2>{activeChat.name}</h2>
-                <p>{activeChat.status === 'online' ? 'Online' : activeChat.status}</p>
-              </div>
-            </header>
-
-            <MessageList chat={activeChat} currentUserId={user?.id} />
-            <MessageComposer chat={activeChat} onSend={handleSend} disabled={!activeChat.chatId} />
-          </>
+          <ChatWindow chat={activeChat} currentUserId={user?.id} onSend={handleSend} />
         ) : (
-          <div className="empty-state">
-            {isLoadingUsers || isCreatingChat
-              ? 'Loading...'
-              : chats.length > 0
-                ? 'Select a user to create a chat.'
-                : 'No registered users to message yet.'}
-          </div>
+          <EmptyChatState isBusy={isBusy} hasUsers={chats.length > 0} />
         )}
       </section>
     </main>

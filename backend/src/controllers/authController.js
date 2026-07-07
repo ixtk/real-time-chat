@@ -1,38 +1,18 @@
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
-
-const cookieName = 'chat_token'
-const sessionMaxAge = 14 * 24 * 60 * 60 * 1000
+import {
+  authCookieName,
+  clearAuthCookie,
+  createAuthToken,
+  setAuthCookie,
+  verifyAuthToken,
+} from '../utils/authToken.js'
 
 function publicUser(user) {
   return {
     id: user._id,
     username: user.username,
   }
-}
-
-function createToken(user) {
-  return jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-    expiresIn: '14d',
-  })
-}
-
-function setAuthCookie(res, token) {
-  res.cookie(cookieName, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: sessionMaxAge,
-  })
-}
-
-function clearAuthCookie(res) {
-  res.clearCookie(cookieName, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  })
 }
 
 export async function registerUser(req, res) {
@@ -58,7 +38,7 @@ export async function registerUser(req, res) {
     username: normalizedUsername,
     password: hashedPassword,
   })
-  const token = createToken(user)
+  const token = createAuthToken(user._id)
 
   setAuthCookie(res, token)
 
@@ -87,7 +67,7 @@ export async function loginUser(req, res) {
     return res.status(401).json({ message: 'Invalid username or password.' })
   }
 
-  const token = createToken(user)
+  const token = createAuthToken(user._id)
 
   setAuthCookie(res, token)
 
@@ -98,14 +78,14 @@ export async function loginUser(req, res) {
 }
 
 export async function getCurrentUser(req, res) {
-  const token = req.cookies?.[cookieName]
+  const token = req.cookies?.[authCookieName]
 
   if (!token) {
     return res.status(401).json({ message: 'Not authenticated.' })
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = verifyAuthToken(token)
     const user = await User.findById(payload.userId)
 
     if (!user) {

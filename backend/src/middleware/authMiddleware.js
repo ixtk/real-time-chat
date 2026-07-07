@@ -1,16 +1,14 @@
-import jwt from 'jsonwebtoken'
-
-const cookieName = 'chat_token'
+import { authCookieName, verifyAuthToken } from '../utils/authToken.js'
 
 export function requireAuth(req, res, next) {
-  const token = req.cookies?.[cookieName]
+  const token = req.cookies?.[authCookieName]
 
   if (!token) {
     return res.status(401).json({ message: 'Not authenticated.' })
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const payload = verifyAuthToken(token)
     req.userId = payload.userId
 
     return next()

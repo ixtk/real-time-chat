@@ -1,4 +1,4 @@
-export const currentUser = {
+export const fallbackAccount = {
   id: 'me',
   name: 'You',
   initials: 'YO',
