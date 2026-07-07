@@ -1,8 +1,34 @@
+import { useEffect } from 'react'
 import Avatar from './Avatar'
 import MessageComposer from './MessageComposer'
 import MessageList from './MessageList'
+import { useSocket } from '../context/SocketContext'
 
-function ChatWindow({ chat, currentUserId, onSend }) {
+function ChatWindow({ chat, currentUserId, onMessage, onSend }) {
+  const { getSocket } = useSocket()
+
+  useEffect(() => {
+    if (!chat?.chatId) return
+
+    const socket = getSocket()
+    if (!socket) return
+
+    socket.emit('chat:join', chat.chatId)
+
+    function handleIncomingMessage(payload) {
+      if (payload.chatId !== chat.chatId) return
+
+      onMessage(payload.chatId, payload.message)
+    }
+
+    socket.on('chat:message', handleIncomingMessage)
+
+    return () => {
+      socket.emit('chat:leave', chat.chatId)
+      socket.off('chat:message', handleIncomingMessage)
+    }
+  }, [chat?.chatId, getSocket, onMessage])
+
   if (!chat) return null
 
   return (

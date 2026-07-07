@@ -2,14 +2,17 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import express from 'express'
+import http from 'http'
 import { connectDB } from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
 import chatRoutes from './routes/chatRoutes.js'
 import userRoutes from './routes/userRoutes.js'
+import { initializeSocketServer } from './socket/socketServer.js'
 
 dotenv.config()
 
 const app = express()
+const server = http.createServer(app)
 const port = process.env.PORT || 5000
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
@@ -33,7 +36,8 @@ app.use('/api/users', userRoutes)
 app.use('/api/chats', chatRoutes)
 
 connectDB()
+initializeSocketServer(server, allowedOrigins)
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Backend running on http://localhost:${port}`)
 })

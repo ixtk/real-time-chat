@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createChat, sendMessage } from '../api/chatApi'
 import { getRegisteredUsers } from '../api/userApi'
 import AccountPanel from '../components/AccountPanel'
@@ -93,16 +93,33 @@ function ChatPage() {
     if (!activeChat?.chatId) return
 
     const savedMessage = await sendMessage(activeChat.chatId, text)
-    const newMessage = mapMessage(savedMessage)
-    const updates = {
-      preview: text,
-      time: 'now',
-      unread: 0,
-      messages: [...activeChat.messages, newMessage],
-    }
-
-    setChats((currentChats) => updateChat(currentChats, activeChat.id, updates))
+    addMessageToChat(activeChat.chatId, savedMessage)
   }
+
+  const addMessageToChat = useCallback((chatId, message) => {
+    const newMessage = mapMessage(message)
+
+    setChats((currentChats) =>
+      currentChats.map((chat) => {
+        if (chat.chatId !== chatId) return chat
+
+        const hasMessage = chat.messages.some((item) => item.id === newMessage.id)
+        if (hasMessage) return chat
+
+        return {
+          ...chat,
+          preview: newMessage.text,
+          time: 'now',
+          unread: 0,
+          messages: [...chat.messages, newMessage],
+        }
+      }),
+    )
+  }, [])
+
+  const handleSocketMessage = useCallback((chatId, message) => {
+    addMessageToChat(chatId, message)
+  }, [addMessageToChat])
 
   async function handleLogout() {
     await signOut()
@@ -121,7 +138,12 @@ function ChatPage() {
 
       <section className="chat-main">
         {activeChat ? (
-          <ChatWindow chat={activeChat} currentUserId={user?.id} onSend={handleSend} />
+          <ChatWindow
+            chat={activeChat}
+            currentUserId={user?.id}
+            onMessage={handleSocketMessage}
+            onSend={handleSend}
+          />
         ) : (
           <EmptyChatState isBusy={isBusy} hasUsers={chats.length > 0} />
         )}

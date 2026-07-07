@@ -1,5 +1,6 @@
 import Chat from '../models/Chat.js'
 import User from '../models/User.js'
+import { emitChatMessage } from '../socket/socketServer.js'
 
 function getParticipantKey(userId, receiverId) {
   return [userId.toString(), receiverId.toString()].sort().join(':')
@@ -98,8 +99,11 @@ export async function sendMessage(req, res) {
   await chat.save()
 
   const message = chat.messages.at(-1)
+  const formattedMessage = formatMessage(message)
+
+  emitChatMessage(chat._id, formattedMessage)
 
   return res.status(201).json({
-    message: formatMessage(message),
+    message: formattedMessage,
   })
 }
