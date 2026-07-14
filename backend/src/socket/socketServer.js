@@ -60,11 +60,28 @@ export function initializeSocketServer(server, allowedOrigins) {
     })
 
     socket.on('chat:leave', (chatId) => {
-      if (chatId) socket.leave(chatId)
+      if (!chatId) return
+
+      emitTyping(socket, chatId, false)
+      socket.leave(chatId)
+    })
+
+    socket.on('chat:typing', ({ chatId, isTyping }) => {
+      if (!chatId) return
+
+      emitTyping(socket, chatId, Boolean(isTyping))
     })
 
     socket.on('presence:get', () => {
       socket.emit('presence:snapshot', getOnlineUserIds())
+    })
+
+    socket.on('disconnecting', () => {
+      socket.rooms.forEach((room) => {
+        if (room !== socket.id) {
+          emitTyping(socket, room, false)
+        }
+      })
     })
 
     socket.on('disconnect', () => {
@@ -85,6 +102,14 @@ export function initializeSocketServer(server, allowedOrigins) {
   })
 
   return io
+}
+
+function emitTyping(socket, chatId, isTyping) {
+  socket.to(chatId.toString()).emit('chat:typing', {
+    chatId: chatId.toString(),
+    userId: socket.userId.toString(),
+    isTyping,
+  })
 }
 
 export function emitChatMessage(chatId, message) {

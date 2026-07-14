@@ -1,12 +1,71 @@
 import { useForm } from 'react-hook-form'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-function MessageComposer({ chat, onSend, disabled = false }) {
+const typingIdleDelay = 2500
+
+function MessageComposer({
+  chat,
+  onSend,
+  onTypingStart,
+  onTypingStop,
+  disabled = false,
+}) {
   const [isSending, setIsSending] = useState(false)
+  const isTypingRef = useRef(false)
+  const idleTimerRef = useRef(null)
   const { register, handleSubmit, reset, watch } = useForm({
     defaultValues: { message: '' },
   })
   const message = watch('message')
+  const messageField = register('message')
+
+  useEffect(() => {
+    return () => {
+      stopTyping()
+    }
+  }, [])
+
+  function clearIdleTimer() {
+    if (!idleTimerRef.current) return
+
+    clearTimeout(idleTimerRef.current)
+    idleTimerRef.current = null
+  }
+
+  function startTyping() {
+    if (disabled || isTypingRef.current) return
+
+    isTypingRef.current = true
+    onTypingStart?.()
+  }
+
+  function stopTyping() {
+    clearIdleTimer()
+
+    if (!isTypingRef.current) return
+
+    isTypingRef.current = false
+    onTypingStop?.()
+  }
+
+  function scheduleTypingStop() {
+    clearIdleTimer()
+    idleTimerRef.current = setTimeout(stopTyping, typingIdleDelay)
+  }
+
+  function handleInputChange(event) {
+    messageField.onChange(event)
+
+    const nextValue = event.target.value.trim()
+
+    if (!nextValue) {
+      stopTyping()
+      return
+    }
+
+    startTyping()
+    scheduleTypingStop()
+  }
 
   const submitMessage = async ({ message }) => {
     const text = message.trim()
@@ -19,6 +78,7 @@ function MessageComposer({ chat, onSend, disabled = false }) {
       await onSend(text)
       reset()
     } finally {
+      stopTyping()
       setIsSending(false)
     }
   }
@@ -36,7 +96,10 @@ function MessageComposer({ chat, onSend, disabled = false }) {
           }
           autoComplete="off"
           disabled={disabled || isSending}
-          {...register('message')}
+          name={messageField.name}
+          onBlur={messageField.onBlur}
+          onChange={handleInputChange}
+          ref={messageField.ref}
         />
         <button
           className="send-button"

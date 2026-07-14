@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
 import Avatar from './Avatar'
 
-function MessageList({ chat, currentUserId }) {
+function MessageList({ chat, currentUserId, isTyping = false }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chat.messages.length])
+  }, [chat.messages.length, isTyping])
 
   return (
     <div className="messages">
@@ -27,7 +27,7 @@ function MessageList({ chat, currentUserId }) {
         )
       })}
 
-      {chat.typing && (
+      {isTyping && (
         <div className="typing">
           <Avatar user={chat} size="small" />
           <div className="typing-bubble" aria-label={`${chat.name} is typing`}>
