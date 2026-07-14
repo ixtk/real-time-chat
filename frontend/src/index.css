@@ -58,11 +58,29 @@ button {
   border-bottom: 1px solid var(--sidebar-border);
 }
 
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sidebar-header h1 {
   margin: 0;
   color: #fff;
   font-size: 15px;
   font-weight: 600;
+}
+
+.total-unread {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--green);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .sidebar-header p,
@@ -172,6 +190,12 @@ button {
   color: #fff;
 }
 
+.chat-item.has-unread .chat-name,
+.chat-item.has-unread .chat-preview {
+  color: #fff;
+  font-weight: 700;
+}
+
 .chat-preview {
   margin-top: 2px;
   overflow: hidden;
@@ -185,7 +209,7 @@ button {
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: var(--blue);
+  background: var(--green);
   color: #fff;
   font-size: 10px;
   font-weight: 700;

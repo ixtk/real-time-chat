@@ -1,12 +1,15 @@
 import Avatar from './Avatar'
 
-function ChatList({ chats, activeChatId, onSelect }) {
+function ChatList({ chats, activeChatId, totalUnread, onSelect }) {
   const onlineCount = chats.filter((chat) => chat.status === 'online').length
 
   return (
     <>
       <div className="sidebar-header">
-        <h1>Messages</h1>
+        <div className="sidebar-title">
+          <h1>Messages</h1>
+          {totalUnread > 0 && <span className="total-unread">{totalUnread}</span>}
+        </div>
         <p>{onlineCount} online</p>
       </div>
 
@@ -17,7 +20,9 @@ function ChatList({ chats, activeChatId, onSelect }) {
 
         {chats.map((chat) => (
           <button
-            className={`chat-item ${chat.id === activeChatId ? 'active' : ''}`}
+            className={`chat-item ${chat.id === activeChatId ? 'active' : ''} ${
+              chat.unread > 0 ? 'has-unread' : ''
+            }`}
             key={chat.id}
             type="button"
             onClick={() => onSelect(chat.id)}

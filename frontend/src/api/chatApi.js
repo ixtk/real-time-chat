@@ -11,3 +11,9 @@ export async function sendMessage(chatId, text) {
 
   return data.message
 }
+
+export async function markChatRead(chatId) {
+  const { data } = await api.patch(`/chats/${chatId}/read`)
+
+  return data
+}

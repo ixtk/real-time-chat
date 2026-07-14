@@ -28,13 +28,14 @@ export function mapMessages(messages = []) {
 export function mapUsersToChats(users) {
   return users.map((registeredUser, index) => ({
     id: registeredUser.id,
+    chatId: registeredUser.chatId,
     name: registeredUser.username,
     initials: getInitials(registeredUser.username),
     color: avatarColors[index % avatarColors.length],
     status: registeredUser.status ?? 'offline',
-    time: 'now',
-    unread: 0,
-    preview: 'Registered user',
+    time: formatMessageTime(registeredUser.lastMessageAt),
+    unread: registeredUser.unread ?? 0,
+    preview: registeredUser.preview ?? 'Registered user',
     typing: false,
     messages: [],
   }))

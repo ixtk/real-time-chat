@@ -1,6 +1,10 @@
 import Chat from '../models/Chat.js'
 import User from '../models/User.js'
-import { emitChatMessage } from '../socket/socketServer.js'
+import {
+  emitChatMessage,
+  emitChatRead,
+  emitUserChatMessage,
+} from '../socket/socketServer.js'
 
 function getParticipantKey(userId, receiverId) {
   return [userId.toString(), receiverId.toString()].sort().join(':')
@@ -11,6 +15,7 @@ function formatMessage(message) {
     id: message._id,
     sender: message.sender,
     text: message.text,
+    messageReadAt: message.messageReadAt,
     createdAt: message.createdAt,
     updatedAt: message.updatedAt,
   }
@@ -100,10 +105,53 @@ export async function sendMessage(req, res) {
 
   const message = chat.messages.at(-1)
   const formattedMessage = formatMessage(message)
+  const receiverId = chat.participants.find(
+    (participantId) => participantId.toString() !== currentUserId,
+  )
 
   emitChatMessage(chat._id, formattedMessage)
+  if (receiverId) {
+    emitUserChatMessage(receiverId, chat._id, formattedMessage)
+  }
 
   return res.status(201).json({
     message: formattedMessage,
+  })
+}
+
+export async function markChatRead(req, res) {
+  const { chatId } = req.params
+  const currentUserId = req.userId
+  const readAt = new Date()
+
+  const chat = await Chat.findOne({
+    _id: chatId,
+    participants: currentUserId,
+  })
+
+  if (!chat) {
+    return res.status(404).json({ message: 'Chat not found.' })
+  }
+
+  const readMessageIds = []
+
+  chat.messages.forEach((message) => {
+    const isIncoming = message.sender.toString() !== currentUserId
+    const isUnread = !message.messageReadAt
+
+    if (!isIncoming || !isUnread) return
+
+    message.messageReadAt = readAt
+    readMessageIds.push(message._id.toString())
+  })
+
+  if (readMessageIds.length > 0) {
+    await chat.save()
+    emitChatRead(chat._id, currentUserId, readMessageIds, readAt)
+  }
+
+  return res.json({
+    readAt,
+    readMessageIds,
   })
 }

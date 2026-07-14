@@ -43,11 +43,13 @@ export function initializeSocketServer(server, allowedOrigins) {
 
   io.on('connection', (socket) => {
     const userId = socket.userId.toString()
+    const userRoom = getUserRoom(userId)
     const userSockets = onlineUsers.get(userId) ?? new Set()
     const wasOffline = userSockets.size === 0
 
     userSockets.add(socket.id)
     onlineUsers.set(userId, userSockets)
+    socket.join(userRoom)
 
     socket.emit('presence:snapshot', getOnlineUserIds())
 
@@ -121,6 +123,30 @@ export function emitChatMessage(chatId, message) {
   })
 }
 
+export function emitUserChatMessage(userId, chatId, message) {
+  if (!io) return
+
+  io.to(getUserRoom(userId)).emit('chat:message', {
+    chatId: chatId.toString(),
+    message,
+  })
+}
+
+export function emitChatRead(chatId, readerId, readMessageIds, readAt) {
+  if (!io) return
+
+  io.to(chatId.toString()).emit('chat:read', {
+    chatId: chatId.toString(),
+    readerId: readerId.toString(),
+    readMessageIds,
+    readAt,
+  })
+}
+
 export function getOnlineUserIds() {
   return [...onlineUsers.keys()]
+}
+
+function getUserRoom(userId) {
+  return `user:${userId}`
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { createChat, sendMessage } from '../api/chatApi'
+import { createChat, markChatRead, sendMessage } from '../api/chatApi'
 import { getRegisteredUsers } from '../api/userApi'
 import AccountPanel from '../components/AccountPanel'
 import AuthModal from '../components/AuthModal'
@@ -21,6 +21,14 @@ function updateChat(chats, chatId, updates) {
 
 function updateUserStatus(chats, userId, status) {
   return updateChat(chats, userId, { status })
+}
+
+function markMessagesRead(messages, readMessageIds, readAt) {
+  const readIds = new Set(readMessageIds)
+
+  return messages.map((message) =>
+    readIds.has(message.id) ? { ...message, messageReadAt: readAt } : message,
+  )
 }
 
 function EmptyChatState({ isBusy, hasUsers }) {
@@ -46,6 +54,56 @@ function ChatPage() {
   const activeChat = chats.find((chat) => chat.id === activeChatId) ?? null
   const account = buildAccount(user, fallbackAccount)
   const isBusy = isLoadingUsers || isCreatingChat
+  const totalUnread = chats.reduce((sum, chat) => sum + chat.unread, 0)
+
+  const applyReadReceipt = useCallback((chatId, readMessageIds, readAt) => {
+    setChats((currentChats) =>
+      currentChats.map((chat) => {
+        if (chat.chatId !== chatId) return chat
+
+        return {
+          ...chat,
+          unread: 0,
+          messages: markMessagesRead(chat.messages, readMessageIds, readAt),
+        }
+      }),
+    )
+  }, [])
+
+  const addMessageToChat = useCallback((chatId, message) => {
+    const newMessage = mapMessage(message)
+    const senderId =
+      typeof newMessage.sender === 'object'
+        ? newMessage.sender.id || newMessage.sender._id
+        : newMessage.sender
+    const isOwnMessage = senderId === user?.id
+    const isOpenChat = activeChat?.chatId === chatId
+
+    setChats((currentChats) =>
+      currentChats.map((chat) => {
+        const matchesChat = chat.chatId === chatId
+        const matchesSenderWithoutChat = !chat.chatId && chat.id === senderId
+
+        if (!matchesChat && !matchesSenderWithoutChat) return chat
+
+        const hasMessage = chat.messages.some((item) => item.id === newMessage.id)
+        if (hasMessage) return chat
+
+        return {
+          ...chat,
+          chatId,
+          preview: newMessage.text,
+          time: 'now',
+          unread: isOwnMessage || isOpenChat ? 0 : chat.unread + 1,
+          messages: [...chat.messages, newMessage],
+        }
+      }),
+    )
+
+    if (!isOwnMessage && isOpenChat) {
+      markChatRead(chatId)
+    }
+  }, [activeChat?.chatId, user?.id])
 
   useEffect(() => {
     if (!user) {
@@ -79,17 +137,29 @@ function ChatPage() {
       )
     }
 
+    function handleIncomingMessage(payload) {
+      addMessageToChat(payload.chatId, payload.message)
+    }
+
+    function handleRead(payload) {
+      applyReadReceipt(payload.chatId, payload.readMessageIds, payload.readAt)
+    }
+
     socket.on('presence:online', handleOnline)
     socket.on('presence:offline', handleOffline)
     socket.on('presence:snapshot', handleSnapshot)
+    socket.on('chat:message', handleIncomingMessage)
+    socket.on('chat:read', handleRead)
     socket.emit('presence:get')
 
     return () => {
       socket.off('presence:online', handleOnline)
       socket.off('presence:offline', handleOffline)
       socket.off('presence:snapshot', handleSnapshot)
+      socket.off('chat:message', handleIncomingMessage)
+      socket.off('chat:read', handleRead)
     }
-  }, [socket])
+  }, [socket, addMessageToChat, applyReadReceipt])
 
   async function loadUsers() {
     setIsLoadingUsers(true)
@@ -111,11 +181,17 @@ function ChatPage() {
 
     try {
       const selectedChat = await createChat(receiverId)
+      const readResult = await markChatRead(selectedChat.id)
       const updates = {
         chatId: selectedChat.id,
         preview: 'Chat created',
         time: 'now',
-        messages: mapMessages(selectedChat.messages),
+        unread: 0,
+        messages: markMessagesRead(
+          mapMessages(selectedChat.messages),
+          readResult.readMessageIds,
+          readResult.readAt,
+        ),
       }
 
       setChats((currentChats) => updateChat(currentChats, receiverId, updates))
@@ -136,31 +212,6 @@ function ChatPage() {
     addMessageToChat(activeChat.chatId, savedMessage)
   }
 
-  const addMessageToChat = useCallback((chatId, message) => {
-    const newMessage = mapMessage(message)
-
-    setChats((currentChats) =>
-      currentChats.map((chat) => {
-        if (chat.chatId !== chatId) return chat
-
-        const hasMessage = chat.messages.some((item) => item.id === newMessage.id)
-        if (hasMessage) return chat
-
-        return {
-          ...chat,
-          preview: newMessage.text,
-          time: 'now',
-          unread: 0,
-          messages: [...chat.messages, newMessage],
-        }
-      }),
-    )
-  }, [])
-
-  const handleSocketMessage = useCallback((chatId, message) => {
-    addMessageToChat(chatId, message)
-  }, [addMessageToChat])
-
   async function handleLogout() {
     await signOut()
     setChats([])
@@ -172,7 +223,12 @@ function ChatPage() {
       {!isCheckingSession && !user && <AuthModal />}
 
       <aside className="sidebar">
-        <ChatList chats={chats} activeChatId={activeChat?.id} onSelect={handleSelectUser} />
+        <ChatList
+          chats={chats}
+          activeChatId={activeChat?.id}
+          totalUnread={totalUnread}
+          onSelect={handleSelectUser}
+        />
         <AccountPanel account={account} onLogout={handleLogout} />
       </aside>
 
@@ -181,7 +237,6 @@ function ChatPage() {
           <ChatWindow
             chat={activeChat}
             currentUserId={user?.id}
-            onMessage={handleSocketMessage}
             onSend={handleSend}
           />
         ) : (
