@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import express from 'express'
 import { connectDB } from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
+import userRoutes from './routes/userRoutes.js'
 
 dotenv.config()
 
@@ -27,6 +28,9 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+
+// http://localhost:5000/api/users/all-users
+app.use("/api/users", userRoutes)
 
 connectDB()
 
