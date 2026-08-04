@@ -2,7 +2,7 @@ import AccountPanel from '../components/AccountPanel'
 import AuthModal from '../components/AuthModal'
 import { fallbackAccount } from '../constants/currentUser'
 import { useAuth } from '../context/AuthContext'
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import api from '../api/client'
 
 function buildAccount(user) {
@@ -18,6 +18,7 @@ function buildAccount(user) {
 function ChatPage() {
   const { user, isCheckingSession, signOut } = useAuth()
   const account = buildAccount(user)
+  const [users, setUsers] = useState([])
 
   async function handleLogout() {
     await signOut()
@@ -30,7 +31,11 @@ function ChatPage() {
       // 'http://localhost:5000/api/users/all-users'
       const response = await api.get("/users/all-users")
 
-      console.log(response.data)
+      const allUsers = response.data.users
+
+      console.log(allUsers)
+
+      setUsers(allUsers)
     }
 
     fetchUsers()
@@ -43,11 +48,17 @@ function ChatPage() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <h1>Users</h1>
-          <p>Next exercise</p>
-        </div>
 
-        <div className="empty-sidebar">
-          Load registered users here.
+          <ul className="empty-sidebar">
+            {users.map(function (u) {
+              return (
+                <li>
+                  <button>{u.username}</button>
+                </li>
+              )
+            })}
+          </ul>
+
         </div>
 
         <AccountPanel account={account} onLogout={handleLogout} />
@@ -55,7 +66,8 @@ function ChatPage() {
 
       <section className="chat-main">
         <div className="empty-state">
-          Next step: create a backend users route and show registered users in the sidebar.
+          Next step: create a backend users route and show registered users in
+          the sidebar.
         </div>
       </section>
     </main>
