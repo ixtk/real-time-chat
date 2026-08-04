@@ -2,6 +2,8 @@ import AccountPanel from '../components/AccountPanel'
 import AuthModal from '../components/AuthModal'
 import { fallbackAccount } from '../constants/currentUser'
 import { useAuth } from '../context/AuthContext'
+import { useEffect } from "react";
+import api from '../api/client'
 
 function buildAccount(user) {
   if (!user) return fallbackAccount
@@ -20,6 +22,19 @@ function ChatPage() {
   async function handleLogout() {
     await signOut()
   }
+
+  useEffect(function () {
+    async function fetchUsers() {
+      console.log("Fetching users from backend...")
+
+      // 'http://localhost:5000/api/users/all-users'
+      const response = await api.get("/users/all-users")
+
+      console.log(response.data)
+    }
+
+    fetchUsers()
+  }, [])
 
   return (
     <main className="chat-shell">
