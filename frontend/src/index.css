@@ -540,3 +540,18 @@ button {
     padding-inline: 16px;
   }
 }
+
+.user-list {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-button {
+  width: 100%;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  cursor: pointer;
+}

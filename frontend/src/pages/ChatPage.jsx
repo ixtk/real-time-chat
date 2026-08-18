@@ -41,6 +41,12 @@ function ChatPage() {
     fetchUsers()
   }, [])
 
+  function openChat(recipient) {
+    console.log("Opening chat...", recipient)
+
+    // 
+  }
+
   return (
     <main className="chat-shell">
       {!isCheckingSession && !user && <AuthModal />}
@@ -49,11 +55,16 @@ function ChatPage() {
         <div className="sidebar-header">
           <h1>Users</h1>
 
-          <ul className="empty-sidebar">
-            {users.map(function (u) {
+          <ul className="user-list">
+            {users.map(function (recipient) {
               return (
                 <li>
-                  <button>{u.username}</button>
+                  <button
+                    onClick={() => openChat(recipient)}
+                    className="user-button"
+                  >
+                    {recipient.username}
+                  </button>
                 </li>
               )
             })}
