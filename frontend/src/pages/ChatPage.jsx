@@ -57,13 +57,15 @@ function ChatPage() {
 
           <ul className="user-list">
             {users.map(function (recipient) {
+              const initials = recipient.username.slice(0, 2).toUpperCase()
               return (
-                <li>
+                <li key={recipient._id || recipient.id || recipient.username}>
                   <button
                     onClick={() => openChat(recipient)}
                     className="user-button"
                   >
-                    {recipient.username}
+                    <span className="user-initials">{initials}</span>
+                    <strong>{recipient.username}</strong>
                   </button>
                 </li>
               )
