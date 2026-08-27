@@ -19,6 +19,8 @@ function ChatPage() {
   const { user, isCheckingSession, signOut } = useAuth()
   const account = buildAccount(user)
   const [users, setUsers] = useState([])
+  // const [isChatOpen, setIsChatOpen] = useState(false)
+  const [openChatUser, setOpenChatUser] = useState(null)
 
   async function handleLogout() {
     await signOut()
@@ -44,7 +46,8 @@ function ChatPage() {
   function openChat(recipient) {
     console.log("Opening chat...", recipient)
 
-    // 
+    // setIsChatOpen(true)
+    setOpenChatUser(recipient.username)
   }
 
   return (
@@ -71,17 +74,23 @@ function ChatPage() {
               )
             })}
           </ul>
-
         </div>
 
         <AccountPanel account={account} onLogout={handleLogout} />
       </aside>
 
       <section className="chat-main">
-        <div className="empty-state">
-          Next step: create a backend users route and show registered users in
-          the sidebar.
-        </div>
+        {openChatUser !== null ? (
+          <div>
+            <h2>{openChatUser}</h2>
+            <input type="text" />
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h2>Welcome to the Chat App</h2>
+            <p>Select a user from the list to start chatting.</p>
+          </div>
+        )}
       </section>
     </main>
   )
