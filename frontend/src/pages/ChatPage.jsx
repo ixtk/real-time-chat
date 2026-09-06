@@ -65,7 +65,7 @@ function ChatPage() {
                 <li key={recipient._id || recipient.id || recipient.username}>
                   <button
                     onClick={() => openChat(recipient)}
-                    className="user-button"
+                    className={`user-button ${openChatUser === recipient.username ? 'active' : ''}`}
                   >
                     <span className="user-initials">{initials}</span>
                     <strong>{recipient.username}</strong>
@@ -81,9 +81,33 @@ function ChatPage() {
 
       <section className="chat-main">
         {openChatUser !== null ? (
-          <div>
-            <h2>{openChatUser}</h2>
-            <input type="text" />
+          <div className="chat-conversation">
+            <header className="conversation-header">
+              <span className="conversation-avatar" aria-hidden="true">
+                {openChatUser.slice(0, 2).toUpperCase()}
+              </span>
+              <div>
+                <h2>{openChatUser}</h2>
+                <p><span className="online-dot" /> Available to chat</p>
+              </div>
+            </header>
+
+            <div className="messages">
+              <div className="conversation-hint">Say hello to start the conversation.</div>
+            </div>
+
+            <div className="composer">
+              <div className="composer-form">
+                <textarea
+                  placeholder={`Message ${openChatUser}`}
+                  aria-label={`Message ${openChatUser}`}
+                  rows="1"
+                />
+                <button className="send-button" type="button" aria-label="Send message">
+                  ↑
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="empty-state">
