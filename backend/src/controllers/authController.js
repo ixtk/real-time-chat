@@ -93,6 +93,8 @@ export async function getCurrentUser(req, res) {
       return res.status(401).json({ message: 'Not authenticated.' })
     }
 
+    req.user = user
+    
     return res.json({ user: publicUser(user) })
   } catch (_error) {
     clearAuthCookie(res)

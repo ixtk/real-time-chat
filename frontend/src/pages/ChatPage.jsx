@@ -43,8 +43,10 @@ function ChatPage() {
     fetchUsers()
   }, [])
 
-  function openChat(recipient) {
-    console.log("Opening chat...", recipient)
+  async function openChat(recipient) {
+    console.log("Opening chat...", recipient._id)
+
+    const response = await api.get(`/users/${recipient._id}/loadChat`)
 
     // setIsChatOpen(true)
     setOpenChatUser(recipient.username)

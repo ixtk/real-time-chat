@@ -11,7 +11,7 @@ export async function getAllUsers(req, res) {
 
 export async function loadChatByUserId(req, res) {
   // 1. find chat by user
-  const { recipientId } = req.params.userId
+  const recipientId = req.params.userId
   const loggedInUserId = req.user._id
 
   const foundChat = await Chat.findOne({
