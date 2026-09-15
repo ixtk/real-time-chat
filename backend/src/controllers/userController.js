@@ -12,7 +12,7 @@ export async function getAllUsers(req, res) {
 export async function loadChatByUserId(req, res) {
   // 1. find chat by user
   const recipientId = req.params.userId
-  const loggedInUserId = req.user._id
+  const loggedInUserId = req.userId
 
   const foundChat = await Chat.findOne({
     participants: { $all: [loggedInUserId, recipientId] }
