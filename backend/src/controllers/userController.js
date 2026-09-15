@@ -36,3 +36,7 @@ export async function loadChatByUserId(req, res) {
     })
   }
 }
+
+export async function sendMessage(req, res) {
+  console.log("sendMessage:", req.params.chatId)
+}

@@ -21,6 +21,7 @@ function ChatPage() {
   const [users, setUsers] = useState([])
   // const [isChatOpen, setIsChatOpen] = useState(false)
   const [openChatUser, setOpenChatUser] = useState(null)
+  const [message, setMessage] = useState('')
 
   async function handleLogout() {
     await signOut()
@@ -52,6 +53,15 @@ function ChatPage() {
     setOpenChatUser(recipient.username)
   }
 
+  function saveMessage(event) {
+    setMessage(event.target.value)
+  }
+
+  function sendMessage() {
+    console.log("Sending message", message)
+    setMessage('')
+  }
+
   return (
     <main className="chat-shell">
       {!isCheckingSession && !user && <AuthModal />}
@@ -67,7 +77,7 @@ function ChatPage() {
                 <li key={recipient._id || recipient.id || recipient.username}>
                   <button
                     onClick={() => openChat(recipient)}
-                    className={`user-button ${openChatUser === recipient.username ? 'active' : ''}`}
+                    className={`user-button ${openChatUser === recipient.username ? "active" : ""}`}
                   >
                     <span className="user-initials">{initials}</span>
                     <strong>{recipient.username}</strong>
@@ -90,12 +100,16 @@ function ChatPage() {
               </span>
               <div>
                 <h2>{openChatUser}</h2>
-                <p><span className="online-dot" /> Available to chat</p>
+                <p>
+                  <span className="online-dot" /> Available to chat
+                </p>
               </div>
             </header>
 
             <div className="messages">
-              <div className="conversation-hint">Say hello to start the conversation.</div>
+              <div className="conversation-hint">
+                Say hello to start the conversation.
+              </div>
             </div>
 
             <div className="composer">
@@ -104,8 +118,15 @@ function ChatPage() {
                   placeholder={`Message ${openChatUser}`}
                   aria-label={`Message ${openChatUser}`}
                   rows="1"
+                  value={message}
+                  onChange={saveMessage}
                 />
-                <button className="send-button" type="button" aria-label="Send message">
+                <button
+                  className="send-button"
+                  type="button"
+                  aria-label="Send message"
+                  onClick={sendMessage}
+                >
                   ↑
                 </button>
               </div>
